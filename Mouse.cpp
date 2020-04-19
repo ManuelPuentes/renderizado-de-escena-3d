@@ -1,9 +1,13 @@
 #include "Mouse.h"
 
-Mouse::Mouse(sf::Vector2f &posicion, int num_rayos,sf::RenderWindow &window)
+Mouse::Mouse(sf::Vector2f &posicion, int num_rayos,sf::RenderWindow &window,int fov)
 {
-	float i=0;
-	angle=360/num_rayos;
+	
+	this->fov=fov;
+	dt=0;
+	float i=-(fov/2)-dt;
+	angle=(float)fov/num_rayos;
+
 	coordx=0;
 	coordy=0;
 	rayo = sf::VertexArray(sf::Lines,2);
@@ -12,7 +16,7 @@ Mouse::Mouse(sf::Vector2f &posicion, int num_rayos,sf::RenderWindow &window)
 	puntero.setPosition(sf::Vector2f(WIDTH/2,HEIGTH/2));
 	puntero.setOrigin(sf::Vector2f(4,4));
 	
-	while(i<=360){
+	while(i<(fov/2)-dt){
 				
 		rayo[0].position= posicion;
 		rayo[0].color= sf::Color::White;
@@ -27,24 +31,14 @@ Mouse::Mouse(sf::Vector2f &posicion, int num_rayos,sf::RenderWindow &window)
 		
 		i+=angle;	
 	}
-	Draw(window);
-}
-Mouse::Draw(sf::RenderWindow & window){
-	
-	for(int i=0;i<rayos.size();i++){
-		
-		window.draw(rayos[i]);		
-	}
-	window.draw(puntero);
 }
 Mouse::UpdateMouse(sf::Vector2f mouse, sf::RenderWindow &window){
 	
-	float i=0;
+	float i=-(fov/2)-dt;
 	rayos.clear();
 	puntero.setPosition(mouse);
 	
-	while(i<360){
-		
+	while(i<(fov/2)-dt){
 		rayo[0].position=mouse;
 		rayo[0].color= sf::Color::White;
 		
@@ -56,23 +50,59 @@ Mouse::UpdateMouse(sf::Vector2f mouse, sf::RenderWindow &window){
 		rayos.push_back(rayo);
 		i+=angle;	
 	}
-	
-	Draw(window);	
 }
 
 Mouse::ShadowCasting(std::vector<sf::VertexArray> &walls, sf::RenderWindow &window){
 	
+	sf::VertexArray linea(sf::Lines,2);
 	
-	for(int i=0;i<walls.size();i++){
+	sf::Vector2f colision_mas_cercana;
+	sf::Vector2f pos_colision;
+	sf::Vector2f vec_distancia;
+	float modulo=0;
+	bool  band=false;
+	
+	float distancia=0;
+	float aux=-(fov/2)-dt;
+	
+	for(int i=0;i<rayos.size();i++){
 		
-		for(int y=0;y<rayos.size();y++){
+		distancia = 99999999;
+		
+		for(int y=0;y<walls.size();y++){
 					
-			Cast(walls[i],rayos[y],window);	
+			if(Cast(walls[y],rayos[i],window,pos_colision)){
+				
+				//si se detecta una colision 
+				vec_distancia.x= pow((rayos[i][0].position.x- pos_colision.x),2);
+				vec_distancia.y= pow((rayos[i][0].position.y- pos_colision.y),2);
+				
+				modulo= sqrt(vec_distancia.x+vec_distancia.y);
+				
+				linea[0].position= rayos[i][0].position;
+				
+				if(modulo<distancia){
+					
+					distancia=modulo;
+					colision_mas_cercana=pos_colision;
+				}
+				band=true;				
+			}
 		}
+		if(band){
+			
+			distancia=fabs(cos(aux*DEGTORAD)*modulo);
+			
+//			std::cout<<distancia <<std::endl;
+			linea[1].position= colision_mas_cercana;
+			linea[1].color= sf::Color::White;
+			window.draw(linea);
+		}
+		aux+=angle;
 	}
 }
 
-Mouse::Cast(sf::VertexArray &wall, sf::VertexArray &rayo , sf::RenderWindow &window){
+bool Mouse::Cast(sf::VertexArray &wall, sf::VertexArray &rayo , sf::RenderWindow &window, sf::Vector2f &pos_colision){
 	
 	float x1= wall[0].position.x;
 	float y1= wall[0].position.y;
@@ -85,13 +115,7 @@ Mouse::Cast(sf::VertexArray &wall, sf::VertexArray &rayo , sf::RenderWindow &win
 	float y4= rayo[1].position.y;
 	
 	int denominador = (x1-x2)*(y3-y4) - (y1-y2) * (x3-x4);
-	
-	sf::CircleShape pt(4);
-	
-	pt.setOrigin(sf::Vector2f(4,4));
-	
 	sf::Vector2f colision;
-	
 	
 	if(denominador!=0){
 		
@@ -102,9 +126,11 @@ Mouse::Cast(sf::VertexArray &wall, sf::VertexArray &rayo , sf::RenderWindow &win
 			
 			colision.x=  x1 + t*(x2-x1);
 			colision.y=  y1 + t*(y2-y1);
-			pt.setPosition(colision);
-			window.draw(pt);	
+			
+			pos_colision=colision;			
+			return true;	
 		}
 	}
 	
+	return false;	
 }	
