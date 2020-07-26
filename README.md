@@ -6,3 +6,4 @@ la aplicacion se basa en el clculo de interseccion de lineas y su dibujado varia
 
 la aplicacion esta realizada utilizado la libreria SFML en su version 2.4.0 y el ide dev-c++  elementos necesarios para probar la aplicacion 
 para instalar estos dos elementos en cuanto al ide ees una instalacion simple y la libreria debe dejarse la carpeta descomprimida en el disco C:/ 
+link de una demostracion de la aplicacion https://youtu.be/QjFYYO10oKY
